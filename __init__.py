@@ -23,8 +23,9 @@ import celery, kombu, amqp
 from kombu import Queue, Exchange
 from celery import Celery
 from celery.concurrency import asynpool
-BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 print(f"celery_app BASE_DIR: {BASE_DIR}")
+
 sys.path.append(BASE_DIR)
 
 # -------------------获取环境变量参数------------------
@@ -72,7 +73,7 @@ is_celery = 'celery' in sys.argv[0]
 asynpool.PROC_ALIVE_TIMEOUT = 3600.0
 celery_app = Celery('tasks')
 
-celery_app.config_from_object("celery_ai2mg.config")
+celery_app.config_from_object(f"{os.path.basename(os.path.dirname(os.path.abspath(__file__)))}.config")
 celery_app.conf.worker_proc_alive_timeout = 3600
 celery_app.conf.broker_url = config[f'celery_{version}']["broker_url"]
 celery_app.conf.result_backend = config[f'celery_{version}']["backend_url"]
