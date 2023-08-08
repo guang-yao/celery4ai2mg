@@ -1,6 +1,6 @@
 import time
 from celery.result import AsyncResult
-from ctasks import celery_app, task_name_dict
+from celery_ai2mg import celery_app, task_name_dict
 
     
 def task_async(func_name,datas,priority=5):

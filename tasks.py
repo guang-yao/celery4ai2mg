@@ -8,8 +8,8 @@
 '''
 from __future__ import print_function
 from __future__ import division
-from ctasks import task_queue,task_config_list,is_celery
-from ctasks import celery_app
+from celery_ai2mg import task_queue,task_config_list,is_celery
+from celery_ai2mg import celery_app
 import importlib
 
 def gen_celery_task(task_config):

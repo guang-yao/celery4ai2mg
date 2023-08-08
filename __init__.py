@@ -27,19 +27,25 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__fil
 print(f"celery_app BASE_DIR: {BASE_DIR}")
 sys.path.append(BASE_DIR)
 
+# -------------------获取环境变量参数------------------
+print(f"package version: \n   celery: {celery.__version__}, \n   kombu: {kombu.__version__}, \n   amqp: {amqp.__version__}")
+version = os.getenv('CELERY_MODE')
+print(f"CELERY_MODE: {version}")
+config = configparser.ConfigParser()
+config.read(f'celery_ai2mg/config.ini')
+# -------------------获取环境变量参数------------------
+
 # 提取任务配置
-taskconfig_file = os.getenv('CELERY_CONFIG')
-task_config = configparser.ConfigParser()
-task_config.read(taskconfig_file)  # f'spc_tools/config.ini'
+methodnames = config['tasks']['name_list'].strip().split(',')
 task_config_list,task_name_dict = [], {}
-for method_name in task_config.sections():
-  importpath = task_config[method_name].get('importpath', None)
+for method_name in methodnames:
+  importpath = config[method_name].get('importpath', None)
   if importpath is None:
     print(f"Error! cannot find importpath with method_name {method_name}")
     continue
   
-  soft_time_limit = task_config[method_name].get('soft_time_limit', None)
-  func_name = task_config[method_name].get('func_name', method_name)
+  soft_time_limit = config[method_name].get('soft_time_limit', None)
+  func_name = config[method_name].get('func_name', method_name)
   queue = f"ai2mg_{func_name}"
   if soft_time_limit is not None:
     soft_time_limit = int(soft_time_limit)
@@ -52,13 +58,7 @@ for method_name in task_config.sections():
   task_name = f'{queue}.{func_name}' if len(queue) > 0 else func_name
   task_name_dict[method_name] = {"task_name":task_name,"soft_time_limit":soft_time_limit}
 
-# -------------------获取环境变量参数------------------
-print(f"package version: \n   celery: {celery.__version__}, \n   kombu: {kombu.__version__}, \n   amqp: {amqp.__version__}")
-version = os.getenv('CELERY_MODE')
-print(f"CELERY_MODE: {version}")
-config = configparser.ConfigParser()
-config.read(f'config_{version}.ini')
-# -------------------获取环境变量参数------------------
+
 
 # 获取当前队列参数与运行参数
 parser = argparse.ArgumentParser()
@@ -72,10 +72,10 @@ is_celery = 'celery' in sys.argv[0]
 asynpool.PROC_ALIVE_TIMEOUT = 3600.0
 celery_app = Celery('tasks')
 
-celery_app.config_from_object("ctasks.config")
+celery_app.config_from_object("celery_ai2mg.config")
 celery_app.conf.worker_proc_alive_timeout = 3600
-celery_app.conf.broker_url = config['celery']["broker_url"]
-celery_app.conf.result_backend = config['celery']["backend_url"]
+celery_app.conf.broker_url = config[f'celery_{version}']["broker_url"]
+celery_app.conf.result_backend = config[f'celery_{version}']["backend_url"]
 celery_app.conf.celery_queues = (
   Queue('default', Exchange('default'), routing_key='default', queue_arguments={'x-max-priority': 10}),
 )
