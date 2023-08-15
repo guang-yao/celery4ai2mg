@@ -1,0 +1,61 @@
+stages:
+  - build
+  - deploy-dev
+  - deploy-prod
+
+
+docker_update_code:
+  image: cs-hub.imgo.tv/kubeflow/docker:base
+  stage: build
+  tags:
+    - k8s-runner
+  retry: 2
+  script:
+    - mkdir -p $HOME/.docker && touch $HOME/.docker/config.json
+    - echo $CI_REGISTRY_CONFIG > $HOME/.docker/config.json
+    - cat $HOME/.docker/config.json
+    - docker build -f ./Dockerfile --no-cache --build-arg ci_name=${CI_USERNAME} --build-arg ci_token=${CI_PUSH_TOKEN}  -t ai-image.imgo.tv/serving/celeryai2mg:$CI_COMMIT_SHA .
+    - docker push ai-image.imgo.tv/serving/celeryai2mg:$CI_COMMIT_SHA
+
+deploy-dev:
+  stage: deploy-dev
+  image: cs-hub.imgo.tv/kubeflow/alpine:3.8.2
+  variables:
+    GIT_STRATEGY: none
+  tags:
+    - k8s-runner
+  before_script:
+    - apk add --no-cache git
+    - git config --global user.email "zhuyan@mgtv.com"
+    - git config --global user.name "Jovian"
+  script:
+    - git clone https://${CI_USERNAME}:${CI_PUSH_TOKEN}@git.imgo.tv/aiops/celery_ai2mg_deploy.git
+    - cd celery_ai2mg_deploy/dev
+    - kustomize edit set image ai-image.imgo.tv/serving/celeryai2mg:$CI_COMMIT_SHA
+    - cat kustomization.yaml
+    - git commit -am '[skip ci] DEV imcage update'
+    - git push origin master
+  only:
+    - master
+    
+
+deploy-prod:
+  stage: deploy-prod
+  image: cs-hub.imgo.tv/kubeflow/alpine:3.8.2
+  tags:
+    - k8s-runner
+  variables:
+    GIT_STRATEGY: none
+  before_script:
+    - apk add --no-cache git
+    - git config --global user.email "zhuyan@mgtv.com"
+    - git config --global user.name "Jovians"
+  script:
+    - git clone https://${CI_USERNAME}:${CI_PUSH_TOKEN}@git.imgo.tv/aiops/celery_ai2mg_deploy.git
+    - cd celery_ai2mg_deploy/prod
+    - kustomize edit set image ai-image.imgo.tv/serving/celeryai2mg:$CI_COMMIT_SHA
+    - cat kustomization.yaml
+    - git commit -am '[skip ci] PROD image update'
+    - git push origin master
+  only:
+    - master
