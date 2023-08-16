@@ -31,7 +31,7 @@ def gen_celery_task(task_config):
     print(f"init func_name: {func_name} from {importpath}")
     script = importlib.import_module(importpath)
     task_name = f'{queue}.{func_name}' if len(queue) > 0 else func_name
-    @celery_app.task(bind=True, name=task_name, soft_time_limit=(soft_time_limit))
+    @celery_app.task(bind=True, name=task_name, soft_time_limit=soft_time_limit)
     def celery_task(self, *args, **kwargs):
         return getattr(script, func_name)(*args, **kwargs)
 
