@@ -44,7 +44,7 @@
 
 单任务worker
 ```
-export CELERY_MODE=dev && celery -A celery_ai2mg.tasks worker -Q ai2mg_get_abs -c 4 -l info -P prefork   # 测试环境
+export CELERY_MODE=dev && celery -A celery_ai2mg.tasks worker -Q ai2mg_get_abs -c 1 -l info -P prefork   # 测试环境
 export CELERY_MODE=prod && celery -A celery_ai2mg.tasks worker -Q ai2mg_get_abs -c 4 -l info -P prefork  # 生产环境
 ```
 

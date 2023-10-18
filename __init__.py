@@ -77,6 +77,18 @@ celery_app.config_from_object(f"{os.path.basename(os.path.dirname(os.path.abspat
 celery_app.conf.worker_proc_alive_timeout = 3600
 celery_app.conf.broker_url = config[f'celery_{version}']["broker_url"]
 celery_app.conf.result_backend = config[f'celery_{version}']["backend_url"]
+broker_transport_options = config[f'celery_{version}'].get("broker_transport_options", None)
+celery_result_backend_transport_options = config[f'celery_{version}'].get("celery_result_backend_transport_options", None)
+if broker_transport_options is not None:
+  try:
+    broker_transport_options = eval(broker_transport_options)
+    celery_result_backend_transport_options = eval(celery_result_backend_transport_options)
+  except Exception as e:
+    print(f"parse config failed! cannot read broker_transport_options: {broker_transport_options}, celery_result_backend_transport_options: {celery_result_backend_transport_options}")
+    celery_result_backend_transport_options = None
+    broker_transport_options = None
+celery_app.conf.broker_transport_options = broker_transport_options
+celery_app.conf.celery_result_backend_transport_options = celery_result_backend_transport_options
 celery_app.conf.celery_queues = (
   Queue('default', Exchange('default'), routing_key='default', queue_arguments={'x-max-priority': 10}),
 )
