@@ -35,7 +35,6 @@ def gen_celery_task(task_config):
     def celery_task(self, *args, **kwargs):
         return getattr(script, func_name)(*args, **kwargs)
 
-
 task_queues = task_queue.split(',')
 to_realize_task = [i for i in task_config_list if i['queue'] in task_queues]
 print(to_realize_task)

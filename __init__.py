@@ -30,7 +30,7 @@ sys.path.append(BASE_DIR)
 
 # -------------------获取环境变量参数------------------
 print(f"package version: \n   celery: {celery.__version__}, \n   kombu: {kombu.__version__}, \n   amqp: {amqp.__version__}")
-version = os.getenv('CELERY_MODE')
+version = os.getenv('CELERY_MODE', 'dev')
 print(f"CELERY_MODE: {version}")
 config = configparser.ConfigParser()
 config.read(f'celery_ai2mg/config.ini')
@@ -60,7 +60,6 @@ for method_name in methodnames:
   task_name_dict[method_name] = {"task_name":task_name,"soft_time_limit":soft_time_limit}
 
 
-
 # 获取当前队列参数与运行参数
 parser = argparse.ArgumentParser()
 parser.add_argument('-Q',type=str, default='')  # --queue
@@ -83,12 +82,13 @@ if broker_transport_options is not None:
   try:
     broker_transport_options = eval(broker_transport_options)
     celery_result_backend_transport_options = eval(celery_result_backend_transport_options)
+    celery_app.conf.broker_transport_options = broker_transport_options
+    celery_app.conf.celery_result_backend_transport_options = celery_result_backend_transport_options
   except Exception as e:
     print(f"parse config failed! cannot read broker_transport_options: {broker_transport_options}, celery_result_backend_transport_options: {celery_result_backend_transport_options}")
     celery_result_backend_transport_options = None
     broker_transport_options = None
-celery_app.conf.broker_transport_options = broker_transport_options
-celery_app.conf.celery_result_backend_transport_options = celery_result_backend_transport_options
+
 celery_app.conf.celery_queues = (
   Queue('default', Exchange('default'), routing_key='default', queue_arguments={'x-max-priority': 10}),
 )
