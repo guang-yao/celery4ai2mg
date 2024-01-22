@@ -44,3 +44,4 @@ if not is_celery:
 else:
     for task_config in to_realize_task:
         gen_celery_task(task_config)
+

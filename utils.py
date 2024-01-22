@@ -15,3 +15,15 @@ def task_async(func_name,datas,priority=5):
         time.sleep(0.1)
         cost += 0.1
     return "celery async TimeOut!"
+
+
+def send_task(text, userid,priority=5):
+    task = celery_app.send_task(task_name_dict['love_tour']['task_name'], args=[text, userid], kwargs={},priority=priority)
+    return task.id
+
+def task_pool(taskid):
+    task = AsyncResult(taskid)
+    if task.state == 'SUCCESS':
+        return task.state, task.result
+    else:
+        return task.state, None
