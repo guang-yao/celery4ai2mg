@@ -1,5 +1,7 @@
 # celery ai2mg
 
+### 安装
+pip install git+https://git.imgo.tv/aiops/celery_ai2mg.git@package
 
 ### 子项目构建
 
