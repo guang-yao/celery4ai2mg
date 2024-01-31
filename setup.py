@@ -1,7 +1,7 @@
 from setuptools import setup
 
 setup(
-    name='celery_ai2mg',
+    name='celery4ai2mg',
     version='1.0.0',
     author='yaoguang',
     author_email='yaoguang@mgtv.com',
