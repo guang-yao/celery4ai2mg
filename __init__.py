@@ -16,7 +16,7 @@ queue: 任务的队列名称
 time_limit: 任务的时间限制，不填则为config里的默认数字
 schedule: 定时任务时间间隔
 """
-__all__ = ['tasks','utils']
+__all__ = ['tasks','utils','celery4ai2mg']
 import os, sys
 import argparse
 import configparser
