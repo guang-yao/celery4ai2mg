@@ -16,14 +16,15 @@ queue: 任务的队列名称
 time_limit: 任务的时间限制，不填则为config里的默认数字
 schedule: 定时任务时间间隔
 """
-__all__ = ['tasks','utils','celery4ai2mg']
-import os, sys
+import os, sys, json
 import argparse
 import configparser
 import celery, kombu, amqp
 from kombu import Queue, Exchange
 from celery import Celery
 from celery.concurrency import asynpool
+
+from .utils import ConfigOperate,CelertTaskOperate
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 print(f"celery_app BASE_DIR: {BASE_DIR}")
 
@@ -31,15 +32,34 @@ sys.path.append(BASE_DIR)
 
 # -------------------获取环境变量参数------------------
 print(f"package version: \n   celery: {celery.__version__}, \n   kombu: {kombu.__version__}, \n   amqp: {amqp.__version__}")
-version = os.getenv('CELERY_MODE', 'dev')
+version = os.getenv('CELERY_MODE','dev')
 print(f"CELERY_MODE: {version}")
-config = configparser.ConfigParser()
-config.read(f'celery_ai2mg/config.ini')
+
+config_operate = ConfigOperate(BASE_DIR)
 # -------------------获取环境变量参数------------------
 
+# 获取当前队列参数与运行参数
+parser = argparse.ArgumentParser()
+parser.add_argument('-Q',type=str, default='')  # --queue
+parser.add_argument("--run_celery", action="store_true", help="Enable verbose mode")
+
+args, unknown = parser.parse_known_args()
+print(f"task_queue: {args.Q}")
+task_queue = args.Q
+is_celery_cmd = 'celery' in sys.argv[0]
+run_celery = args.run_celery
+just_create_task=run_celery or is_celery_cmd
+print(f"args.run_celery: {run_celery}")
+print(f"is_celery_cmd: {is_celery_cmd}")
+print(f"just_create_task: {just_create_task}")
+
+if run_celery:
+  from .atexit_run import quit_uvicorn
 # 提取任务配置
-methodnames = config['tasks']['name_list'].strip().split(',')
 task_config_list,task_name_dict = [], {}
+config = config_operate.lastest_config()
+methodnames = config['tasks']['name_list'].strip().split(',')
+methodnames  = [i for i in  methodnames if i!=""]
 for method_name in methodnames:
   importpath = config[method_name].get('importpath', None)
   if importpath is None:
@@ -48,51 +68,40 @@ for method_name in methodnames:
   
   soft_time_limit = config[method_name].get('soft_time_limit', None)
   func_name = config[method_name].get('func_name', method_name)
-  queue = f"ai2mg_{func_name}"
+  queue = config[method_name].get('queue', f"ai2mg_{func_name}")
   if soft_time_limit is not None:
     soft_time_limit = int(soft_time_limit)
+  class_name = config[method_name].get('class_name', None)
   task_config_list.append({
     "importpath":importpath,
     "func_name":func_name,
     "queue":queue,
-    'soft_time_limit':soft_time_limit})
-  
+    'soft_time_limit':soft_time_limit,
+    "class_name":class_name
+    })
   task_name = f'{queue}.{func_name}' if len(queue) > 0 else func_name
   task_name_dict[method_name] = {"task_name":task_name,"soft_time_limit":soft_time_limit}
 
-
-# 获取当前队列参数与运行参数
-parser = argparse.ArgumentParser()
-parser.add_argument('-Q',type=str, default='')  # --queue
-args, unknown = parser.parse_known_args()
-print(f"task_queue: {args.Q}")
-task_queue = args.Q
-is_celery = 'celery' in sys.argv[0]
 
 # 通用celery配置
 asynpool.PROC_ALIVE_TIMEOUT = 3600.0
 celery_app = Celery('tasks')
 
-celery_app.config_from_object(f"{os.path.basename(os.path.dirname(os.path.abspath(__file__)))}.config")
+celery_app.config_from_object(f"celery4ai2mg.config")
 celery_app.conf.worker_proc_alive_timeout = 3600
-celery_app.conf.broker_url = config[f'celery_{version}']["broker_url"]
-celery_app.conf.result_backend = config[f'celery_{version}']["backend_url"]
-broker_transport_options = config[f'celery_{version}'].get("broker_transport_options", None)
-celery_result_backend_transport_options = config[f'celery_{version}'].get("celery_result_backend_transport_options", None)
-if broker_transport_options is not None:
-  try:
-    broker_transport_options = eval(broker_transport_options)
-    celery_result_backend_transport_options = eval(celery_result_backend_transport_options)
-    celery_app.conf.broker_transport_options = broker_transport_options
-    celery_app.conf.celery_result_backend_transport_options = celery_result_backend_transport_options
-  except Exception as e:
-    print(f"parse config failed! cannot read broker_transport_options: {broker_transport_options}, celery_result_backend_transport_options: {celery_result_backend_transport_options}")
-    celery_result_backend_transport_options = None
-    broker_transport_options = None
 
-celery_app.conf.celery_queues = (
-  Queue('default', Exchange('default'), routing_key='default', queue_arguments={'x-max-priority': 10}),
-)
+if 'celery' in config:
+  celery_app.conf.broker_url = config[f'celery']["broker_url"].strip('"').strip("'")
+  celery_app.conf.result_backend = config[f'celery']["backend_url"].strip('"').strip("'")
+  celery_app.conf.celery_queues = (
+    Queue('default', Exchange('default'), routing_key='default', queue_arguments={'x-max-priority': 10}),
+  )
+  broker_transport_options = config[f'celery'].get("broker_transport_options", None)
+  if broker_transport_options is not None:
+    broker_transport_options = json.loads(broker_transport_options)
+    celery_app.conf.broker_transport_options = broker_transport_options
+    celery_app.conf.result_backend_transport_options = broker_transport_options
+
 """
 队列信息
 key: 任务名称，*通配符代表所有。 value: 队列信息
@@ -105,3 +114,4 @@ queue_list = list(set([i['queue'] for i in task_config_list]))
 queue_dict = {f"{c_queue}.*": {'queue':c_queue} for c_queue in queue_list if len(c_queue) > 0}
 
 celery_app.conf.task_routes.update(queue_dict)
+ctoperate = CelertTaskOperate(celery_app=celery_app, config_operate=config_operate, task_name_dict=task_name_dict, just_create_task=just_create_task)

@@ -9,9 +9,10 @@
 from __future__ import print_function
 from __future__ import division
 import importlib
-
-from . import task_queue,task_config_list,is_celery
-from . import celery_app
+import os
+from . import task_queue,task_config_list,is_celery_cmd
+from . import celery_app, BASE_DIR, config_operate
+import inspect
 
 
 def gen_celery_task(task_config):
@@ -27,20 +28,26 @@ def gen_celery_task(task_config):
     queue = task_config['queue']
     importpath = task_config['importpath']
     soft_time_limit = task_config.get('soft_time_limit', None)
+    bind = task_config.get('bind', "False")
     
     print(f"init func_name: {func_name} from {importpath}")
     script = importlib.import_module(importpath)
     task_name = f'{queue}.{func_name}' if len(queue) > 0 else func_name
-    @celery_app.task(bind=True, name=task_name, soft_time_limit=soft_time_limit)
-    def celery_task(self, *args, **kwargs):
-        return getattr(script, func_name)(*args, **kwargs)
+    if bind == "True":
+        @celery_app.task(bind=True, name=task_name, soft_time_limit=soft_time_limit)
+        def celery_task(self, *args, **kwargs):
+            return getattr(script, func_name)(self, *args, **kwargs)
+    else:
+        @celery_app.task(bind=False, name=task_name, soft_time_limit=soft_time_limit)
+        def celery_task(*args, **kwargs):
+            return getattr(script, func_name)(*args, **kwargs)
 
 task_queues = task_queue.split(',')
 to_realize_task = [i for i in task_config_list if i['queue'] in task_queues]
+
 print(to_realize_task)
-if not is_celery: 
+if not is_celery_cmd: 
     print(f"python scripts, pass create celery task")
 else:
     for task_config in to_realize_task:
         gen_celery_task(task_config)
-
