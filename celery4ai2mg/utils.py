@@ -8,11 +8,12 @@ from celery.result import AsyncResult
 import copy
 
 class CelertTaskOperate:
-    def __init__(self, celery_app, config_operate, task_name_dict,just_create_task=True) -> None:
+    def __init__(self, celery_app, config_operate, task_name_dict,just_create_task=True,is_celery_cmd=False) -> None:
         self.celery_app = celery_app
         self.config_operate = config_operate
         self.task_name_dict = task_name_dict
         self.just_create_task = just_create_task
+        self.is_celery_cmd = is_celery_cmd
     
     def update_queue(self, queue):
         print(f"update queue: {queue}")
@@ -58,21 +59,25 @@ class CelertTaskOperate:
         func_name = func.__name__
         task_name = f"task_{func_name}" if task_name  == "" else task_name
         queue = f"aimg_{func_name}" if queue  == "" else queue
+        task_full_name = f"{queue}.{func_name}"
         
         self.config_operate.update_func(func, task_name, queue, soft_time_limit=soft_time_limit, bind=bind)
         self.update_queue(queue)
-        if not create_task:return
-        print("create_task")
+        
+        if not create_task:
+            return task_name
+        print("create_task ...")
         if bind:
-            @self.celery_app.task(bind=True, name=f"{queue}.{task_name}", soft_time_limit=soft_time_limit)
+            @self.celery_app.task(bind=True, name=task_full_name, soft_time_limit=soft_time_limit)
             def celery_task(self, *args, **kwargs):
                 return func(self, *args, **kwargs)
         else:
-            @self.celery_app.task(bind=False, name=f"{queue}.{task_name}", soft_time_limit=soft_time_limit)
+            @self.celery_app.task(bind=False, name=task_full_name, soft_time_limit=soft_time_limit)
             def celery_task(*args, **kwargs):
                 return func(*args, **kwargs)
             
-        self.task_name_dict[task_name] = {"task_name":f"{queue}.{task_name}","soft_time_limit":soft_time_limit}
+        self.task_name_dict[task_name] = {"task_name":task_full_name,"soft_time_limit":soft_time_limit}
+        return task_name
     
     def task_async(self, func=None,func_name="", args=[],kwargs={} ,priority=5):
         if self.just_create_task: return
@@ -87,12 +92,16 @@ class CelertTaskOperate:
             raise "错误的函数名"
         return self.celery_app.send_task(task_name, args=args, kwargs=kwargs,priority=priority)
 
-    def task_pool(self, taskid):
+    def async_result(self, taskid):
         if self.just_create_task: return
         return AsyncResult(taskid)
     
     def done(self):
         if self.just_create_task:
+            if self.is_celery_cmd:
+                print(f"ctoperate.done() 不能和执行的函数放在同一个文件中，否则会执行不成功！！！")
+                print(f"清理.celery文件夹")
+                os.system(f"rm -r {self.config_operate.local_config_path}")
             exit(0)
 
 class ConfigOperate:
@@ -116,6 +125,7 @@ class ConfigOperate:
         if 'tasks' in self.config:
             name_list = self.config.get('tasks', 'name_list').strip().split(',')
             name_list = [i for i in name_list if i != ""] + [fname]
+            name_list = list(set(name_list))
         else:
             self.config.add_section('tasks')
             name_list = [fname]

@@ -16,3 +16,4 @@ cutils/lib_hottopic/ips.txt
 cutils/lib_hottopic/stars.txt
 dbSql.log
 test_data/
+.celery

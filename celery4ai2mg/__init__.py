@@ -114,4 +114,10 @@ queue_list = list(set([i['queue'] for i in task_config_list]))
 queue_dict = {f"{c_queue}.*": {'queue':c_queue} for c_queue in queue_list if len(c_queue) > 0}
 
 celery_app.conf.task_routes.update(queue_dict)
-ctoperate = CelertTaskOperate(celery_app=celery_app, config_operate=config_operate, task_name_dict=task_name_dict, just_create_task=just_create_task)
+ctoperate = CelertTaskOperate(
+  celery_app=celery_app, 
+  config_operate=config_operate, 
+  task_name_dict=task_name_dict, 
+  just_create_task=just_create_task,
+  is_celery_cmd=is_celery_cmd
+  )

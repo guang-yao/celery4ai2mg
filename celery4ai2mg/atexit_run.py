@@ -5,6 +5,8 @@ import os
 
 os.environ['quit_signal'] = '0'
 run_command_key_word = "--run_celery"
+
+
 @atexit.register
 def quit_uvicorn():
     """勾子函数，在主程序运行结束时判断是否需要执行celery, 自动获取主程序中注册的队列，并运行"""
