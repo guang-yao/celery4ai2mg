@@ -102,7 +102,7 @@ class ConfigOperate:
         os.makedirs(tmp_dir, exist_ok=True)
         self.local_config_path = os.path.join(tmp_dir, "config.ini")
         self.config = configparser.ConfigParser()
-        self.config.read(f'celery4ai2mg/config.ini')
+        self.config.read(self.local_config_path)
         if not os.path.exists(self.local_config_path):
             self.save()
     
@@ -113,8 +113,12 @@ class ConfigOperate:
         importpath = '.'.join(relpath[:-3].split('/'))
         func_name = function.__name__
         
-        name_list = self.config.get('tasks', 'name_list').strip().split(',')
-        name_list = [i for i in name_list if i != ""] + [fname]
+        if 'tasks' in self.config:
+            name_list = self.config.get('tasks', 'name_list').strip().split(',')
+            name_list = [i for i in name_list if i != ""] + [fname]
+        else:
+            self.config.add_section('tasks')
+            name_list = [fname]
         self.config.set('tasks', 'name_list', ','.join(name_list))
         
         if fname not in self.config:

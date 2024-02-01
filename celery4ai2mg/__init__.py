@@ -55,40 +55,41 @@ print(f"just_create_task: {just_create_task}")
 
 if run_celery:
   from .atexit_run import quit_uvicorn
-# 提取任务配置
-task_config_list,task_name_dict = [], {}
-config = config_operate.lastest_config()
-methodnames = config['tasks']['name_list'].strip().split(',')
-methodnames  = [i for i in  methodnames if i!=""]
-for method_name in methodnames:
-  importpath = config[method_name].get('importpath', None)
-  if importpath is None:
-    print(f"Error! cannot find importpath with method_name {method_name}")
-    continue
   
-  soft_time_limit = config[method_name].get('soft_time_limit', None)
-  func_name = config[method_name].get('func_name', method_name)
-  queue = config[method_name].get('queue', f"ai2mg_{func_name}")
-  if soft_time_limit is not None:
-    soft_time_limit = int(soft_time_limit)
-  class_name = config[method_name].get('class_name', None)
-  task_config_list.append({
-    "importpath":importpath,
-    "func_name":func_name,
-    "queue":queue,
-    'soft_time_limit':soft_time_limit,
-    "class_name":class_name
-    })
-  task_name = f'{queue}.{func_name}' if len(queue) > 0 else func_name
-  task_name_dict[method_name] = {"task_name":task_name,"soft_time_limit":soft_time_limit}
-
-
 # 通用celery配置
 asynpool.PROC_ALIVE_TIMEOUT = 3600.0
 celery_app = Celery('tasks')
 
 celery_app.config_from_object(f"celery4ai2mg.config")
 celery_app.conf.worker_proc_alive_timeout = 3600
+
+# 提取任务配置
+task_config_list,task_name_dict = [], {}
+config = config_operate.lastest_config()
+if 'tasks'  in config:
+  methodnames = config['tasks']['name_list'].strip().split(',')
+  methodnames  = [i for i in  methodnames if i!=""]
+  for method_name in methodnames:
+    importpath = config[method_name].get('importpath', None)
+    if importpath is None:
+      print(f"Error! cannot find importpath with method_name {method_name}")
+      continue
+    
+    soft_time_limit = config[method_name].get('soft_time_limit', None)
+    func_name = config[method_name].get('func_name', method_name)
+    queue = config[method_name].get('queue', f"ai2mg_{func_name}")
+    if soft_time_limit is not None:
+      soft_time_limit = int(soft_time_limit)
+    class_name = config[method_name].get('class_name', None)
+    task_config_list.append({
+      "importpath":importpath,
+      "func_name":func_name,
+      "queue":queue,
+      'soft_time_limit':soft_time_limit,
+      "class_name":class_name
+      })
+    task_name = f'{queue}.{func_name}' if len(queue) > 0 else func_name
+    task_name_dict[method_name] = {"task_name":task_name,"soft_time_limit":soft_time_limit}
 
 if 'celery' in config:
   celery_app.conf.broker_url = config[f'celery']["broker_url"].strip('"').strip("'")
