@@ -25,9 +25,8 @@ from celery import Celery
 from celery.concurrency import asynpool
 
 from .utils import ConfigOperate,CelertTaskOperate
-BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+BASE_DIR = os.getcwd()
 print(f"celery_app BASE_DIR: {BASE_DIR}")
-
 sys.path.append(BASE_DIR)
 
 # -------------------获取环境变量参数------------------
