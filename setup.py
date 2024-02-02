@@ -17,7 +17,9 @@ setup(
     platforms="any",
     install_requires=[
         'celery==5.2.7',
-        'celery-amqp-backend==1.0.0'
+        'celery-amqp-backend==1.0.0',
+        'redis==5.0.1',
+        'amqp==5.1.1'
         ],
     package_data={
         'celery4ai2mg': ['config.ini'],
