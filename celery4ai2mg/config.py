@@ -34,6 +34,10 @@ task_queue_max_priority = 10
 
 task_default_priority=5
 
+broker_heartbeat = 86400
+
+broker_heartbeat_checkrate = 10
+
 """
 修改过期时间：
 /root/miniconda3/lib/python3.8/site-packages/celery_amqp_backend/backend.py
