@@ -80,12 +80,14 @@ if 'tasks'  in config:
     if soft_time_limit is not None:
       soft_time_limit = int(soft_time_limit)
     class_name = config[method_name].get('class_name', None)
+    bind = config[method_name].get('bind', "False")
     task_config_list.append({
       "importpath":importpath,
       "func_name":func_name,
       "queue":queue,
       'soft_time_limit':soft_time_limit,
-      "class_name":class_name
+      "class_name":class_name,
+      "bind":str(bind)
       })
     task_name = f'{queue}.{func_name}' if len(queue) > 0 else func_name
     task_name_dict[method_name] = {"task_name":task_name,"soft_time_limit":soft_time_limit}
