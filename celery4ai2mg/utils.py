@@ -40,10 +40,10 @@ class CelertTaskOperate:
     def update_broker_backend(self, broker_url,  backend_url, broker_transport_options = None):
         """
             保存连接串信息
-            broker_url = "sentinel://10.43.208.66:7850;sentinel://10.43.208.64:7495;sentinel://10.43.208.65:7493;"
-            backend_url = "sentinel://10.43.208.66:7850;sentinel://10.43.208.64:7495;sentinel://10.43.208.65:7493;"
-            broker_transport_options = {"master_name":"ad-effect_platform-aliyun-new2-6450"}
-            celery_amqp_backend.AMQPBackend://ai2mg:as78113hasf1v@10.200.16.242/ai2mg-prod
+            broker_url = "sentinel://127.0.0.1:7850;"
+            backend_url = "sentinel://127.0.0.1:7850;"
+            broker_transport_options = {"master_name":"6450"}
+            celery_amqp_backend.AMQPBackend://adsadsd:adsdasd@127.0.0.1/ai2mg-prod
         """
         self.add_celery_config('broker_url', broker_url)
         

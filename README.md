@@ -1,7 +1,7 @@
 # 快速部署celery ai2mg
 
 ### 安装
-pip install git+https://git.imgo.tv/aiops/celery_ai2mg.git@package
+pip install git+https://github.com/guang-yao/celery4ai2mg.git
 
 ### 使用
 
