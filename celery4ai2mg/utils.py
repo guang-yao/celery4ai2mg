@@ -55,26 +55,30 @@ class CelertTaskOperate:
         if broker_transport_options is not None:
             self.add_celery_config('broker_transport_options', broker_transport_options)
     
-    def create_celery_task(self, func, task_name="",queue="", soft_time_limit=60*60, bind=False, create_task=True):
-        func_name = func.__name__
+    def create_celery_task(self, func_or_class, task_name="",queue="", soft_time_limit=60*60, bind=False,classbase=False, create_task=True):
+        func_name = func_or_class.__name__
         task_name = f"task_{func_name}" if task_name  == "" else task_name
         queue = f"aimg_{func_name}" if queue  == "" else queue
         task_full_name = f"{queue}.{func_name}"
         
-        self.config_operate.update_func(func, task_name, queue, soft_time_limit=soft_time_limit, bind=bind)
+        self.config_operate.update_func(func_or_class, task_name, queue, soft_time_limit=soft_time_limit, bind=bind,classbase=classbase)
         self.update_queue(queue)
         
         if not create_task:
             return task_name
         print("create_task ...")
-        if bind:
+        if classbase:
+            @self.celery_app.task(bind=True, base=func_or_class,name=task_name, soft_time_limit=soft_time_limit,max_retries=3)
+            def celery_task(self, *args, **kwargs):
+                return self.run_process(*args, **kwargs)
+        elif bind:
             @self.celery_app.task(bind=True, name=task_full_name, soft_time_limit=soft_time_limit)
             def celery_task(self, *args, **kwargs):
-                return func(self, *args, **kwargs)
+                return func_or_class(self, *args, **kwargs)
         else:
             @self.celery_app.task(bind=False, name=task_full_name, soft_time_limit=soft_time_limit)
             def celery_task(*args, **kwargs):
-                return func(*args, **kwargs)
+                return func_or_class(*args, **kwargs)
             
         self.task_name_dict[task_name] = {"task_name":task_full_name,"soft_time_limit":soft_time_limit}
         return task_name
@@ -115,7 +119,7 @@ class ConfigOperate:
         if not os.path.exists(self.local_config_path):
             self.save()
     
-    def update_func(self, function, fname, queue, soft_time_limit=None, bind=False):
+    def update_func(self, function, fname, queue, soft_time_limit=None, bind=False,classbase=False):
         file_path = inspect.getfile(function)
         relpath =  os.path.relpath(file_path, self.base_dir)
         assert relpath.endswith(".py")
@@ -137,6 +141,7 @@ class ConfigOperate:
         self.config.set(fname, 'importpath', importpath)
         self.config.set(fname, 'func_name', func_name)
         self.config.set(fname, 'bind', str(bind))
+        self.config.set(fname, 'classbase', str(classbase))
         self.config.set(fname, 'queue', queue)
         if soft_time_limit is not None:
             self.config.set(fname, 'soft_time_limit', str(soft_time_limit))

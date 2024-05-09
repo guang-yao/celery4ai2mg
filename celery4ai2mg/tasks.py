@@ -29,11 +29,17 @@ def gen_celery_task(task_config):
     importpath = task_config['importpath']
     soft_time_limit = task_config.get('soft_time_limit', None)
     bind = task_config.get('bind', "False")
-    
+    classbase = task_config.get('classbase', "False")
+
     print(f"init func_name: {func_name} from {importpath}")
     script = importlib.import_module(importpath)
     task_name = f'{queue}.{func_name}' if len(queue) > 0 else func_name
-    if bind == "True":
+    
+    if classbase == "True":
+        @celery_app.task(bind=True, base=getattr(script, func_name),name=task_name, soft_time_limit=soft_time_limit)
+        def celery_task(self, *args, **kwargs):
+            return self.run_process(*args, **kwargs)
+    elif bind == "True":
         @celery_app.task(bind=True, name=task_name, soft_time_limit=soft_time_limit)
         def celery_task(self, *args, **kwargs):
             return getattr(script, func_name)(self, *args, **kwargs)
@@ -44,7 +50,6 @@ def gen_celery_task(task_config):
 
 task_queues = task_queue.split(',')
 to_realize_task = [i for i in task_config_list if i['queue'] in task_queues]
-
 print(to_realize_task)
 if not is_celery_cmd: 
     print(f"python scripts, pass create celery task")
