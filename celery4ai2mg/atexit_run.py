@@ -22,5 +22,8 @@ def quit_uvicorn():
         
         extra_args = ' '.join(sys.argv[sys.argv.index(run_command_key_word) + 1:])
         cmd = f"celery -A celery4ai2mg.tasks worker -Q {queues} {extra_args}"
+        CUDA_VISIBLE_DEVICES = os.environ.get('CUDA_VISIBLE_DEVICES', None)
+        if CUDA_VISIBLE_DEVICES is not None:
+            cmd = f"CUDA_VISIBLE_DEVICES={CUDA_VISIBLE_DEVICES} {cmd}"
         print(cmd)
         os.system(cmd)

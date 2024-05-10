@@ -45,7 +45,7 @@ parser.add_argument("--run_celery", action="store_true", help="Enable verbose mo
 args, unknown = parser.parse_known_args()
 print(f"task_queue: {args.Q}")
 task_queue = args.Q
-is_celery_cmd = 'celery' == os.path.basename(sys.argv[0])
+is_celery_cmd = 'celery' in [os.path.basename(argv_) for argv_ in sys.argv]
 run_celery = args.run_celery
 just_create_task = run_celery or is_celery_cmd
 print(f"args.run_celery: {run_celery}")
@@ -79,14 +79,14 @@ if 'tasks'  in config:
     queue = config[method_name].get('queue', f"ai2mg_{func_name}")
     if soft_time_limit is not None:
       soft_time_limit = int(soft_time_limit)
-    class_name = config[method_name].get('class_name', None)
+    classbase = config[method_name].get('classbase', None)
     bind = config[method_name].get('bind', "False")
     task_config_list.append({
       "importpath":importpath,
       "func_name":func_name,
       "queue":queue,
       'soft_time_limit':soft_time_limit,
-      "class_name":class_name,
+      "classbase":classbase,
       "bind":str(bind)
       })
     task_name = f'{queue}.{func_name}' if len(queue) > 0 else func_name
