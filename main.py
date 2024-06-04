@@ -2,7 +2,7 @@ import time
 import celery
 from fuinc import func_test2
         
-from celery4ai2mg1 import ctoperate
+from celery4ai2mg import ctoperate
 
 ctoperate.update_broker_backend(
     broker_url="amqp://ai2mg:as78113hasf1v@10.200.16.242/ai2mg-prod",  

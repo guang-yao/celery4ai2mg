@@ -47,7 +47,7 @@ print(f"task_queue: {args.Q}")
 task_queue = args.Q
 is_celery_cmd = 'celery' == os.path.basename(sys.argv[0])
 run_celery = args.run_celery
-just_create_task = run_celery or not is_celery_cmd
+just_create_task = run_celery or is_celery_cmd
 print(f"args.run_celery: {run_celery}")
 print(f"is_celery_cmd: {is_celery_cmd}")
 print(f"just_create_task: {just_create_task}")
